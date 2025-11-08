@@ -1,0 +1,328 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    animation: gradient 15s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+.login-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 40px;
+    width: 350px;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+    animation: floatIn 1s ease-out forwards;
+    transform: translateY(50px);
+    opacity: 0;
+    margin-top: -20%;
+}
+
+@keyframes floatIn {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.login-card h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+/* đoạn này sửa  */
+
+.card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+h2,
+h3 {
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+button {
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    transition: 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007aff, #0a84ff);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0064e0, #0b73f9);
+}
+
+.btn-secondary {
+    background: #eee;
+    color: #333;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0 20px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+
+/* Wi-Fi list */
+.wifi-list {
+    list-style: none;
+    margin-top: 20px;
+}
+
+.wifi-list li {
+    background: #f9f9f9;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.wifi-list li:hover {
+    background: #f1f1f1;
+}
+
+/* Progress bar */
+.progress {
+    background: #eee;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #34c759, #0acf83);
+    transition: width 0.3s ease;
+}
+
+#progressText {
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    width: 90%;
+    max-width: 350px;
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    button {
+        font-size: 0.95rem;
+        padding: 12px;
+    }
+
+    input {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .login-card {
+        width: 90%;
+        padding: 30px;
+    }
+}
+
+.login-card h4 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.justify-content-center {
+    justify-content: center;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.wifi-list {
+    margin: 1rem 0;
+    list-style-type: none;
+    max-height: 600px !important;
+    overflow: scroll;
+}
+
+.wifi-list li {
+    display: block;
+    width: 100%;
+    margin: 10px 0px;
+}
+
+.wifi {
+    --size: 22px;
+    /* chiều cao tổng */
+    --width: 5px;
+    /* độ rộng mỗi vạch */
+    --gap: 5px;
+    /* khoảng cách giữa vạch */
+    --inactive: #fffbfb;
+    /* màu vạch chưa bật (xám đậm để nổi trên nền trắng) */
+    --active: #00bcd4;
+    /* màu vạch bật (xanh dương sáng) */
+    display: inline-flex;
+    gap: var(--gap);
+    align-items: flex-end;
+    height: var(--size);
+    user-select: none;
+}
+
+.wifi .bar {
+    width: var(--width);
+    border-radius: 3px 3px 0 0;
+    background: var(--inactive);
+    opacity: 0.3;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.wifi .bar:nth-child(1) {
+    height: 25%;
+}
+
+.wifi .bar:nth-child(2) {
+    height: 50%;
+}
+
+.wifi .bar:nth-child(3) {
+    height: 75%;
+}
+
+.wifi .bar:nth-child(4) {
+    height: 100%;
+}
+
+/* Khi có class avg-N thì bật N vạch đầu (từ trái sang phải) */
+.wifi.avg-1 .bar:nth-child(-n+1),
+.wifi.avg-2 .bar:nth-child(-n+2),
+.wifi.avg-3 .bar:nth-child(-n+3),
+.wifi.avg-4 .bar:nth-child(-n+4) {
+    background: var(--active);
+    opacity: 1;
+}
+
+/* Kích thước nhỏ hơn nếu cần */
+.wifi.small {
+    --size: 16px;
+    --width: 3px;
+    --gap: 3px;
+}
+
+.button-wifi {
+    background: none;
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    border-radius: 4px;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+    animation: floatIn 1s ease-out forwards;
+    text-align: start;
+    width: 100%;
+}
+
+.wifi-name {
+    font-size: 20px;
+    margin-left: 10px;
+    color: #ffffff;
+}

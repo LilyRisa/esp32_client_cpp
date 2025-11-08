@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Thiết lập Wi-Fi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Panel chọn Wi-Fi -->
+  <div id="panel-setup" class="login-card">
+        <h2>Cấu hình thiết bị</h2>
+        <div id="panel-setup">
+            <h4>Chọn mạng Wi-Fi</h4>
+            <button id="scanBtn" class="social-btn">🔍 Quét Wi-Fi</button>
+            <ul id="wifiList" class="wifi-list d-flex flex-wrap justify-content-center">
+
+            </ul>
+        </div>
+    </div>
+
+  <!-- Hộp thoại nhập mật khẩu -->
+  <div id="wifiModal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="wifiTitle"></h3>
+      <input type="password" id="wifiPassword" placeholder="Nhập mật khẩu Wi-Fi">
+      <div class="modal-actions">
+        <button id="cancelModal" class="btn-secondary">Hủy</button>
+        <button id="confirmWifi" class="btn-primary">Tiếp tục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bước nhập Email -->
+  <div id="panel-email" class="card hidden">
+    <h3>Nhập email của bạn</h3>
+    <p><i>Hãy nhập đúng email nếu không người khác có thể điều khiển thiết bị của bạn từ xa</i></p>
+    <input type="email" id="email" placeholder="example@gmail.com" required>
+    <button id="connectBtn" class="btn-primary">Kết nối & Tạo mã</button>
+  </div>
+
+  <!-- Thanh tiến trình -->
+  <div id="panel-progress" class="card hidden">
+    <p>Đang kết nối...</p>
+    <div class="progress">
+      <div id="bar" class="bar"></div>
+    </div>
+    <div id="progressText">0%</div>
+  </div>
+
+  <!-- Kết quả -->
+  <div id="panel-result" class="card hidden">
+    <h2>✅ Thiết bị đã được thêm vào hệ thống!</h2>
+    <p id="successMsg"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
