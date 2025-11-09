@@ -1,4 +1,6 @@
-#pragma once
+#ifndef BLUETOOTH_MANAGER_H
+#define BLUETOOTH_MANAGER_H
+
 #include <Arduino.h>
 #include "BluetoothA2DPSink.h"
 
@@ -8,3 +10,5 @@ void stopBluetooth();
 void reloadBluetooth(String name);
 String getBluetoothName();
 void saveBluetoothName(String name);
+
+#endif
