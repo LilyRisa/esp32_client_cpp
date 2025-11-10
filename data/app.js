@@ -112,34 +112,77 @@ document.getElementById('connectBtn').onclick = async () => {
 
   // 2️⃣ Poll trạng thái thật
   const pollStatus = async () => {
-    while (!finished && Date.now() - startTime < 10000) {
+    const MAX_DURATION = 25000; // 25s chờ tối đa
+    const INTERVAL = 1000;      // 1s/poll
+    const MAX_FAIL_COUNT = 3;   // fail liên tiếp 3 lần mới coi là thật
+    let finished = false;
+    let failCount = 0;
+    let lastResponseOk = false; // ESP có từng phản hồi thành công không?
+    const startTime = Date.now();
+
+    // Đợi ESP khởi động (tránh fetch quá sớm)
+    await new Promise(r => setTimeout(r, 1500));
+
+    while (!finished && Date.now() - startTime < MAX_DURATION) {
       try {
-        const res = await fetch('/status');
+        // 🧠 Gửi request /status
+        const res = await fetch('/status?_=' + Date.now(), { cache: 'no-store' });
         const s = await res.json();
 
-        // Nếu ESP trả trạng thái thật
+        lastResponseOk = true; // Đã nhận được phản hồi => ESP vẫn đang chạy server
+        console.log('[ESP]', s);
+
+        // ✅ Nếu ESP báo "connected" rõ ràng
         if (s.state === 'connected' && s.wifi_status === 3) {
           finished = true;
           clearInterval(fakeTimer);
+          console.log('✅ ESP báo connected (trực tiếp)');
           fakeProgressTo100(bar, txt, 3000, () => showSuccess(email));
           return;
         }
 
-        if (s.state === 'failed' || s.wifi_status !== 3) {
+        // ⚠️ Nếu ESP báo "failed" => tăng đếm
+        if (s.state === 'failed') failCount++;
+        else failCount = 0;
+
+        // Nếu thất bại 3 lần liên tiếp => coi là lỗi thật
+        if (failCount >= MAX_FAIL_COUNT) {
           finished = true;
           clearInterval(fakeTimer);
+          console.log('❌ ESP báo failed 3 lần liên tiếp');
           return handleConnectFail();
         }
-      } catch (e) {
-        // có thể ESP đang restart, bỏ qua tạm
+
+        // Nếu vẫn đang connecting, fake tiến độ
+        if (s.state === 'connecting') {
+          fakeProgressStep(bar, txt, 5);
+        }
+
+      } catch (err) {
+        console.warn('⚠️ Không fetch được /status:', err.message);
+
+        // ✅ ESP từng phản hồi => giờ không phản hồi => server đã tắt => thành công!
+        if (lastResponseOk) {
+          finished = true;
+          clearInterval(fakeTimer);
+          console.log('✅ ESP tắt WebServer → kết nối thành công');
+          fakeProgressTo100(bar, txt, 3000, () => showSuccess(email));
+          return;
+        }
+
+        // ❌ Nếu chưa từng phản hồi được lần nào → có thể ESP chưa khởi động xong
+        // => bỏ qua và thử lại
       }
-      await new Promise(r => setTimeout(r, 1000));
+
+      // Đợi 1 giây rồi tiếp tục poll
+      await new Promise(r => setTimeout(r, INTERVAL));
     }
 
-    // Timeout không phản hồi
+    // ⏱️ Nếu hết thời gian mà vẫn không connected => fail
     if (!finished) {
       finished = true;
       clearInterval(fakeTimer);
+      console.log('⏱️ Timeout: ESP không phản hồi đủ lâu');
       handleConnectFail();
     }
   };

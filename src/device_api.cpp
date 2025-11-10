@@ -5,7 +5,7 @@
 #include "bluetooth_manager.h"
 #include "storage.h"
 
-const char *LARAVEL_SERVER = "http://dev.congminhstore.vn/api";
+const char *LARAVEL_SERVER = "http://spe.congminhstore.vn/api";
 
 bool checkCodeValidity(String code)
 {

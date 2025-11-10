@@ -20,7 +20,7 @@ void startWiFiAP()
 
 void startConnectToWiFi(const char *ssid, const char *pass, String email)
 {
-  WiFi.disconnect(true);
+  WiFi.disconnect(false);
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin(ssid, pass);
 
@@ -64,5 +64,7 @@ void handleWiFiEvents()
       connectProgress = 100;
       Serial.println("[WiFi] Connection failed");
     }
+  }else{
+    
   }
 }

@@ -5,6 +5,7 @@
 #include "storage.h"
 #include "bluetooth_manager.h"
 #include "audio_source_manager.h"
+#include "dsp_stream.h"
 
 enum ConnState {
   IDLE,
@@ -14,6 +15,8 @@ enum ConnState {
 };
 
 void setup() {
+
+
   Serial.begin(115200);
   delay(200);
 
@@ -22,11 +25,14 @@ void setup() {
   initWebServer();       // WebServer + route
   // startBluetooth("Congminhaudio");
   initAudioManager();
+  initDspStream();
 
 }
 
 void loop() {
+  // Serial.printf("Free heap: %u, min heap: %u\n", ESP.getFreeHeap(), ESP.getMinFreeHeap());
   handleWiFiEvents();    // xử lý tiến trình kết nối Wi-Fi
   handleWebServer();     // phục vụ web request
+  loopDspStream(); 
 
 }

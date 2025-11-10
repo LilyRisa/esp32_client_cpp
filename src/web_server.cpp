@@ -83,55 +83,33 @@ void initWebServer()
   } });
 
   // Trạng thái tiến trình
-  server.on("/status", HTTP_GET, []()
-{
-            String code = loadDeviceCode();
-            String stateStr;
+ server.on("/status", HTTP_GET, []() {
+  String code = loadDeviceCode();
 
-            // ⚙️ Kiểm tra trạng thái thực tế của Wi-Fi
-            wl_status_t wifiStatus = WiFi.status();
+  wl_status_t wifiStatus = WiFi.status();
 
-            if (connState == CONNECTING) {
-              if (wifiStatus == WL_CONNECTED) {
-                connState = CONNECTED;
-              } else if (millis() - connectStart > CONNECT_MAX_MS) {
-                connState = FAILED;
-              }
-            }
+  // ✅ KHÔNG thay đổi connState tại đây
+  String stateStr;
+  switch (connState) {
+    case IDLE:        stateStr = "idle"; break;
+    case CONNECTING:  stateStr = "connecting"; break;
+    case CONNECTED:   stateStr = "connected"; break;
+    case FAILED:      stateStr = "failed"; break;
+    default:          stateStr = "unknown"; break;
+  }
 
-            // ⚙️ Xác định chuỗi trạng thái để trả về
-            switch (connState) {
-              case IDLE:        stateStr = "idle"; break;
-              case CONNECTING:  stateStr = "connecting"; break;
-              case CONNECTED:
-                // Kiểm tra thật sự có Wi-Fi không
-                stateStr = (wifiStatus == WL_CONNECTED) ? "connected" : "failed";
-                break;
-              case FAILED:      stateStr = "failed"; break;
-              default:          stateStr = "unknown"; break;
-            }
+  // ✅ Giới hạn progress
+  int safeProgress = constrain(connectProgress, 0, 100);
 
-            // ✅ Nếu đang connected nhưng mất Wi-Fi -> failed
-            if (connState == CONNECTED && wifiStatus != WL_CONNECTED) {
-              connState = FAILED;
-              stateStr = "failed";
-            }
+  String json = "{";
+  json += "\"state\":\"" + stateStr + "\",";
+  json += "\"progress\":" + String(safeProgress) + ",";
+  json += "\"wifi_status\":" + String((int)wifiStatus) + ",";
+  json += "\"device_code\":\"" + code + "\"";
+  json += "}";
 
-            // Giới hạn progress
-            int safeProgress = constrain(connectProgress, 0, 100);
-
-            // Code thiết bị
-            if (code.isEmpty()) code = "";
-
-            String json = "{";
-            json += "\"state\":\"" + stateStr + "\",";
-            json += "\"progress\":" + String(safeProgress) + ",";
-            json += "\"wifi_status\":" + String((int)wifiStatus) + ",";
-            json += "\"device_code\":\"" + code + "\"";
-            json += "}";
-
-            server.send(200, "application/json", json); 
-        });
+  server.send(200, "application/json", json);
+});
 
   server.begin();
   Serial.println("[HTTP] WebServer started");
