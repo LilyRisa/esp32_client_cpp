@@ -1,4 +1,3 @@
-// bluetooth_manager.cpp - phiên bản đã sửa (ring buffer, no malloc in callback)
 #include "bluetooth_manager.h"
 #include <SPIFFS.h>
 #include "BluetoothA2DPSink.h"
@@ -6,27 +5,22 @@
 #include "driver/i2s.h"
 #include "dsp_stream.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
 #include "freertos/ringbuf.h"
+#include <ArduinoJson.h>
 
 BluetoothA2DPSink a2dp_sink;
 String currentBtName = "CongMinhAudio";
 
-// Chân I2S xuất ra DAC UDA1334A
 #define I2S_BCK_IO 26
 #define I2S_WS_IO 25
 #define I2S_DO_IO 22
 
-// Bật/tắt DSP (do bạn quản lý khi load config)
-// bool dspEnabled = false;
-
-// Ringbuffer để truyền dữ liệu nhanh từ callback -> DSP task
 static RingbufHandle_t rb = NULL;
 static TaskHandle_t dspTaskHandle = NULL;
+static const size_t RINGBUF_SIZE = 8 * 1024;
+static const size_t MAX_PACKET = 4096;
 
-static const size_t RINGBUF_SIZE = 8 * 1024; // 8KB ring buffer (tùy chỉnh)
-static const size_t MAX_PACKET = 4096;       // Gói lớn nhất chấp nhận (giảm nếu cần)
-
+// extern bool dspEnabled;
 
 // ---------------- DSP task ----------------
 void dspTask(void *param)
@@ -36,30 +30,21 @@ void dspTask(void *param)
 
   while (true)
   {
-    // chờ data (blocking)
     item = (uint8_t *)xRingbufferReceive(rb, &item_size, portMAX_DELAY);
-    if (item == NULL) continue;
+    if (!item)
+      continue;
 
-    int sampleCount = item_size / 2; // 16-bit samples
+    int sampleCount = item_size / 2;
     int16_t *samples = (int16_t *)item;
 
     if (dspEnabled)
-    {
       processAudioBufferInt16(samples, sampleCount);
-    }
 
-    // Ghi ra I2S — len bytes = item_size
     size_t bytes_written = 0;
-    esp_err_t res = i2s_write(I2S_NUM_0, (const char *)samples, item_size, &bytes_written, portMAX_DELAY);
-
-    // Optional: debug nhẹ (không nên nhiều)
-    // Serial.printf("[I2S] wrote %u/%u bytes res=%d\n", bytes_written, (unsigned)item_size, res);
-
-    // Trả item về ringbuffer
+    i2s_write(I2S_NUM_0, (const char *)samples, item_size, &bytes_written, portMAX_DELAY);
     vRingbufferReturnItem(rb, (void *)item);
   }
 }
-
 
 // ---------------- on connection callback ----------------
 void onBtConnection(esp_a2d_connection_state_t state, void *obj)
@@ -67,8 +52,10 @@ void onBtConnection(esp_a2d_connection_state_t state, void *obj)
   if (state == ESP_A2D_CONNECTION_STATE_CONNECTED)
   {
     Serial.println("✅ Bluetooth connected, starting DSP task...");
+     Serial.printf("[Heap] start bluetooth ♥ %u bytes, Vcc: %.2fV\n",
+              ESP.getFreeHeap(),
+              analogRead(A0) * (3.3 / 4095.0));
 
-    // 🔧 Khởi tạo I2S thủ công (vì ta override stream_reader)
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
         .sample_rate = 44100,
@@ -90,53 +77,48 @@ void onBtConnection(esp_a2d_connection_state_t state, void *obj)
         .data_in_num = I2S_PIN_NO_CHANGE};
     i2s_set_pin(I2S_NUM_0, &pin_config);
 
-    // Tạo DSP task nếu chưa có
     if (dspTaskHandle == NULL)
     {
       xTaskCreatePinnedToCore(dspTask, "DSPTask", 12288, NULL, 1, &dspTaskHandle, 0);
       Serial.println("🛠 DSP task created");
     }
+
+    if (ESP.getFreeHeap() > 80000)
+    {
+      initDspStream();
+      Serial.printf("🌐 WebSocket started (heap=%u)\n", ESP.getFreeHeap());
+    }
+    else
+    {
+      Serial.println("⚠️ Not enough heap for WebSocket!");
+    }
+
   }
 
   if (state == ESP_A2D_CONNECTION_STATE_DISCONNECTED)
   {
-    Serial.println("🔴 Bluetooth disconnected, stopping DSP task...");
-    // Không xóa task ngay, có thể giữ để tái dùng; nếu muốn xóa: vTaskDelete(dspTaskHandle);
-    // Uninstall I2S nếu bạn muốn:
+    Serial.println("🔴 Bluetooth disconnected");
     i2s_driver_uninstall(I2S_NUM_0);
-    // dspTaskHandle = NULL; // nếu xóa task
+    wsClient.disconnect();
   }
 }
 
-
-// ---------------- stream reader callback (RINGBUFFER) ----------------
+// ---------------- stream reader callback ----------------
 void audio_data_callback(const uint8_t *data, uint32_t len)
 {
-  // RẤT QUAN TRỌNG: callback phải thật nhanh. Không sử dụng malloc/free, không in Serial.
-  if (!rb) return;
-
-  if (len == 0 || len > MAX_PACKET)
-  {
-    // gói quá lớn -> bỏ (hoặc cắt nếu muốn)
+  if (!rb || len == 0 || len > MAX_PACKET)
     return;
-  }
 
-  // xRingbufferSend sẽ copy dữ liệu vào buffer nội bộ (non-blocking với timeout 0)
-  BaseType_t ok = xRingbufferSend(rb, (void *)data, len, 0);
-  if (ok != pdTRUE)
-  {
-    // ring buffer đầy -> bỏ gói (không block)
-    // (cũng có thể count dropped packets)
-  }
+  xRingbufferSend(rb, (void *)data, len, 0);
 }
-
 
 // ---------------- start / stop bluetooth ----------------
 void startBluetooth(String name)
 {
+ 
+
   currentBtName = name;
 
-  // --- Chuẩn bị ringbuffer trước khi start ---
   if (!rb)
   {
     rb = xRingbufferCreate(RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);
@@ -147,7 +129,6 @@ void startBluetooth(String name)
     }
   }
 
-  // --- Cấu hình I2S pins (thư viện sẽ không install driver nếu set_stream_reader override) ---
   i2s_pin_config_t my_pin_config = {
       .bck_io_num = I2S_BCK_IO,
       .ws_io_num = I2S_WS_IO,
@@ -157,30 +138,33 @@ void startBluetooth(String name)
   a2dp_sink.set_task_core(1);
   a2dp_sink.set_pin_config(my_pin_config);
 
-  // ⚙️ Khởi tạo DSP EQ trước khi khởi động Bluetooth
-  initDspManager(44100.0f); // Sample rate Bluetooth mặc định
-  // loadDspConfig() nên set dspEnabled = true/false theo file
+  // ⚙️ 1️⃣ Khởi tạo DSP engine
+  initDspManager(44100.0f);
 
-  // 🔊 Gán callback nhận dữ liệu (phải trước start)
+  // ⚙️ 3️⃣ Load EQ từ file (và bật dspEnabled)
+  loadDspConfig();
+
+  // ⚙️ 4️⃣ Nếu vẫn chưa có EQ (file lỗi), áp EQ mặc định thủ công
+  if (!dspEnabled)
+  {
+    float defaultEQ[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    applyEqFromArray(defaultEQ);
+
+    Serial.println("✅ Applied default EQ manually");
+  }
+
+  // 🔊 Gán callback nhận dữ liệu
   a2dp_sink.set_stream_reader(audio_data_callback);
-
-  // set on connection state
   a2dp_sink.set_on_connection_state_changed(onBtConnection);
 
-  // --- Khởi động Bluetooth A2DP ---
   a2dp_sink.start(currentBtName.c_str());
   Serial.printf("[BT] Started with name: %s\n", currentBtName.c_str());
+  Serial.printf("Free heap: %u, min heap: %u\n", ESP.getFreeHeap(), ESP.getMinFreeHeap());
 }
 
 void stopBluetooth()
 {
   a2dp_sink.end(true);
-  // Uninstall I2S and free ringbuffer if bạn muốn
-  if (rb)
-  {
-    vRingbufferDelete(rb);
-    rb = NULL;
-  }
   Serial.println("[BT] Bluetooth stopped");
 }
 

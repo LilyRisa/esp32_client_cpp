@@ -6,12 +6,14 @@
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 #include <AudioTools.h>
+#include <WebSocketsClient.h>
 
 // EQ gồm 10 băng tần (32Hz → 16kHz)
 
 extern AsyncWebServer asyncServer;
 extern String deviceCode; // đã được load từ storage
-extern bool dspEnabled; // đã được load từ storage
+extern bool dspEnabled; // đã được load từ storage.
+extern WebSocketsClient wsClient;
 
 void initDspStream();
 void applyDspConfig(JsonArray eq);

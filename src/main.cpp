@@ -24,8 +24,8 @@ void setup() {
   startWiFiAP();         // Tạo Access Point
   initWebServer();       // WebServer + route
   // startBluetooth("Congminhaudio");
-  initAudioManager();
-  initDspStream();
+  // initAudioManager();
+  // initDspStream();
 
 }
 

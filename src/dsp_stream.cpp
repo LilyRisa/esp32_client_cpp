@@ -55,7 +55,7 @@ void loadDspConfig() {
 // 📩 Xử lý dữ liệu nhận được từ WebSocket server (Laravel)
 void handleWsMessage(const char *payload, size_t length)
 {
-  StaticJsonDocument<512> doc;
+  StaticJsonDocument<256> doc;
   DeserializationError err = deserializeJson(doc, payload, length);
   if (err)
   {
@@ -74,7 +74,7 @@ void handleWsMessage(const char *payload, size_t length)
   }
 
   // Parse JSON bên trong data
-  StaticJsonDocument<512> inner;
+  StaticJsonDocument<256> inner;
   DeserializationError err2 = deserializeJson(inner, dataStr);
   if (err2)
   {

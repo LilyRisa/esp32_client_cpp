@@ -3,6 +3,8 @@
 #include "device_api.h"
 #include "web_server.h"
 #include "state_manager.h"
+#include "dsp_stream.h"
+#include "audio_source_manager.h"
 
 
 String targetSSID = "";
@@ -55,6 +57,8 @@ void handleWiFiEvents()
       delay(4000);
       WiFi.softAPdisconnect(true);
       WiFi.mode(WIFI_STA);
+      initAudioManager();
+      // initDspStream();
       
       Serial.println("[WiFi] Access Point turned off. ESP now only in STA mode.");
     }
@@ -65,6 +69,6 @@ void handleWiFiEvents()
       Serial.println("[WiFi] Connection failed");
     }
   }else{
-    
+
   }
 }

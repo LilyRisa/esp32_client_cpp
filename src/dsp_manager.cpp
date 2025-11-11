@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <math.h>
 #include <ArduinoJson.h>
+#include "dsp_stream.h"
 
 #define NUM_BANDS 10
 
@@ -87,26 +88,22 @@ void applyEqFromJson(JsonArray eq) {
 
 // 🧠 Lọc buffer PCM 16-bit (stereo)
 void processAudioBufferInt16(int16_t *samples, int len) {
-    // len = tổng số mẫu 16-bit (L,R,L,R,...) => frames = len / 2
     int frames = len / 2;
     float left, right;
+    const float outGain = 0.6f;  // giảm 40% biên độ tổng để tránh méo DAC
 
     for (int frame = 0; frame < frames; frame++) {
         left  = samples[frame * 2]     / 32768.0f;
         right = samples[frame * 2 + 1] / 32768.0f;
 
-        // Áp 10 băng lọc cho mỗi kênh
         for (int band = 0; band < NUM_BANDS; band++) {
             float *c = coeffs[band];
-
-            // Kênh trái
             float *sL = stateL[band];
             float yL = c[0]*left + c[1]*sL[0] + c[2]*sL[1] - c[3]*sL[2] - c[4]*sL[3];
             sL[1] = sL[0]; sL[0] = left;
             sL[3] = sL[2]; sL[2] = yL;
             left = yL;
 
-            // Kênh phải
             float *sR = stateR[band];
             float yR = c[0]*right + c[1]*sR[0] + c[2]*sR[1] - c[3]*sR[2] - c[4]*sR[3];
             sR[1] = sR[0]; sR[0] = right;
@@ -114,13 +111,16 @@ void processAudioBufferInt16(int16_t *samples, int len) {
             right = yR;
         }
 
+        // Giảm tổng biên độ
+        left *= outGain;
+        right *= outGain;
+
         // Giới hạn tránh méo
         if (left > 1.0f) left = 1.0f;
         if (left < -1.0f) left = -1.0f;
         if (right > 1.0f) right = 1.0f;
         if (right < -1.0f) right = -1.0f;
 
-        // Ghi lại mẫu sau khi EQ
         samples[frame * 2]     = (int16_t)(left * 32767);
         samples[frame * 2 + 1] = (int16_t)(right * 32767);
     }
